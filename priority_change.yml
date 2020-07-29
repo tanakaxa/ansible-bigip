@@ -1,0 +1,61 @@
+- name: Priority Change(Web1 -> Web2)
+  hosts: f5_1
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: Disable Web1 from Pool & Priority Down
+      bigip_pool_member:
+        state: disabled 
+        pool: "{{ web_pool_name }}"
+        partition: Common
+        host: "{{ web_pool_member1 }}"
+        port: "{{ web_pool_member1_port }}"
+        priority_group: "{{ secondary_priority }}"
+        provider:
+          server: "{{ private_ip }}"
+          user: "{{ ansible_user }}" 
+          password: "{{ ansible_ssh_pass }}"
+          validate_certs: no
+      delegate_to: localhost
+
+    - name: Web2 Priority Up
+      bigip_pool_member:
+        state: present
+        pool: "{{ web_pool_name }}"
+        partition: Common
+        host: "{{ web_pool_member2 }}"
+        port: "{{ web_pool_member2_port }}"
+        priority_group: "{{ primary_priority }}"
+        provider:
+          server: "{{ private_ip }}"
+          user: "{{ ansible_user }}" 
+          password: "{{ ansible_ssh_pass }}"
+          validate_certs: no
+      delegate_to: localhost
+
+    - name: Enable Web1 from Pool
+      bigip_pool_member:
+        state: enabled 
+        pool: "{{ web_pool_name }}"
+        partition: Common
+        host: "{{ web_pool_member1 }}"
+        port: "{{ web_pool_member1_port }}"
+        provider:
+          server: "{{ private_ip }}"
+          user: "{{ ansible_user }}" 
+          password: "{{ ansible_ssh_pass }}"
+          validate_certs: no
+      delegate_to: localhost
+
+    - name: Sync Configuration from device to group
+      bigip_configsync_action:
+        device_group: "{{ device_group_name }}"
+        sync_device_to_group: yes
+        provider:
+          server: "{{ private_ip }}"
+          user: "{{ ansible_user }}" 
+          password: "{{ ansible_ssh_pass }}"
+          validate_certs: no
+      delegate_to: localhost
+
